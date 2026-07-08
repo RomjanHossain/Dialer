@@ -68,6 +68,17 @@
             </intent-filter>
         </activity>
 
+        <!-- In-call UI Activity — the app's own calling screen -->
+        <activity
+            android:name=".feature.incall.InCallActivity"
+            android:exported="false"
+            android:showOnLockScreen="true"
+            android:launchMode="singleTop"
+            android:excludeFromRecents="true"
+            android:taskAffinity=".incall"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:theme="@style/Theme.MyApplication" />
+
         <!-- InCallService — replaces stock call UI -->
         <service
             android:name=".core.telecom.DialerInCallService"

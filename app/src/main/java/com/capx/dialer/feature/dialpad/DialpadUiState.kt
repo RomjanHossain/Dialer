@@ -9,5 +9,7 @@ data class DialpadUiState(
 
 sealed interface DialpadUiEvent {
     data class ShowSnackbar(val message: String) : DialpadUiEvent
-    data object NavigateToCall : DialpadUiEvent
+
+    /** Ask the host to place a call to [number] (routed through SIM selection). */
+    data class RequestCall(val number: String) : DialpadUiEvent
 }

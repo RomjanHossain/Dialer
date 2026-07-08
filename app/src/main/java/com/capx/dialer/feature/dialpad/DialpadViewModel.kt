@@ -2,8 +2,9 @@ package com.capx.dialer.feature.dialpad
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.capx.dialer.core.domain.usecase.DialNumberUseCase
-import com.capx.dialer.core.domain.usecase.SearchContactsUseCase
+import com.capx.dialer.core.domain.model.Contact
+import com.capx.dialer.core.domain.usecase.GetContactsUseCase
+import com.capx.dialer.core.domain.util.T9
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,10 +15,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+/**
+ * Drives the dial-pad screen: tracks the typed number and produces contact
+ * suggestions using T9 matching so the user can search by name (Arif -> 2743)
+ * or by number.
+ */
 @HiltViewModel
 class DialpadViewModel @Inject constructor(
-    private val dialNumberUseCase: DialNumberUseCase,
-    private val searchContactsUseCase: SearchContactsUseCase
+    private val getContactsUseCase: GetContactsUseCase
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DialpadUiState())
@@ -26,50 +31,60 @@ class DialpadViewModel @Inject constructor(
     private val _events = Channel<DialpadUiEvent>()
     val events = _events.receiveAsFlow()
 
+    /** In-memory contact cache used for fast T9 filtering on every keypress. */
+    private var allContacts: List<Contact> = emptyList()
+
+    init {
+        viewModelScope.launch {
+            getContactsUseCase().collect { contacts ->
+                allContacts = contacts
+                recomputeSuggestions()
+            }
+        }
+    }
+
     fun onDigitPress(digit: Char) {
         _state.update { it.copy(currentNumber = it.currentNumber + digit) }
-        searchContacts()
+        recomputeSuggestions()
     }
 
     fun onBackspaceClick() {
         val current = _state.value.currentNumber
         if (current.isNotEmpty()) {
             _state.update { it.copy(currentNumber = current.dropLast(1)) }
-            searchContacts()
+            recomputeSuggestions()
         }
     }
-    
+
     fun onBackspaceLongClick() {
         _state.update { it.copy(currentNumber = "") }
-        searchContacts()
+        recomputeSuggestions()
     }
 
+    /** Places a call to whatever is currently typed. */
     fun onCallClick() {
         val number = _state.value.currentNumber
         if (number.isNotEmpty()) {
-            val result = dialNumberUseCase(number)
-            if (result.isSuccess) {
-                viewModelScope.launch {
-                    _events.send(DialpadUiEvent.NavigateToCall)
-                }
-            } else {
-                viewModelScope.launch {
-                    _events.send(DialpadUiEvent.ShowSnackbar("Cannot place call"))
-                }
-            }
+            viewModelScope.launch { _events.send(DialpadUiEvent.RequestCall(number)) }
         }
     }
 
-    private fun searchContacts() {
+    /** Places a call to a tapped suggestion. */
+    fun onSuggestionClick(number: String) {
+        viewModelScope.launch { _events.send(DialpadUiEvent.RequestCall(number)) }
+    }
+
+    private fun recomputeSuggestions() {
         val query = _state.value.currentNumber
-        if (query.length >= 2) {
-            viewModelScope.launch {
-                searchContactsUseCase(query).collect { contacts ->
-                    _state.update { it.copy(suggestedContacts = contacts) }
-                }
-            }
-        } else {
+        if (query.isBlank()) {
             _state.update { it.copy(suggestedContacts = emptyList()) }
+            return
         }
+        val matches = allContacts
+            .asSequence()
+            .filter { T9.matches(it, query) }
+            .take(20)
+            .toList()
+        _state.update { it.copy(suggestedContacts = matches) }
     }
 }

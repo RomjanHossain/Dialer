@@ -1,6 +1,7 @@
 package com.capx.dialer.core.domain.repository
 
 import com.capx.dialer.core.domain.model.CallState
+import com.capx.dialer.core.domain.model.SimAccount
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -18,11 +19,22 @@ import kotlinx.coroutines.flow.StateFlow
 interface TelecomBridge {
 
     /**
+     * Returns the list of call-capable SIM / phone accounts on the device.
+     *
+     * Used to decide whether a SIM chooser is needed and to place a call on a
+     * specific SIM. Returns an empty list if the accounts cannot be read
+     * (e.g. missing permission).
+     */
+    fun getSimAccounts(): List<SimAccount>
+
+    /**
      * Initiates an outgoing call to the given phone [number].
      *
      * @param number The phone number to dial. Must be a valid, non-empty string.
+     * @param accountId Optional [SimAccount.id] identifying which SIM to use.
+     *        When null, the platform default is used.
      */
-    fun placeCall(number: String)
+    fun placeCall(number: String, accountId: String? = null)
 
     /**
      * Ends the currently active or ringing call.

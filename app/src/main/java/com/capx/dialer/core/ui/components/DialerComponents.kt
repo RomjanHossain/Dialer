@@ -8,6 +8,7 @@
  */
 package com.capx.dialer.core.ui.components
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
@@ -249,10 +250,15 @@ fun DialerBottomBar(
             tabs.forEachIndexed { index, tab ->
                 val isSelected = index == selectedIndex
 
-                val iconAlpha by animateFloatAsState(
-                    targetValue = if (isSelected) 1f else 0.5f,
+                val tint by animateColorAsState(
+                    targetValue = if (isSelected) colors.primary else colors.onSurfaceVariant,
                     animationSpec = AnimationEngine.microTween(),
-                    label = "tabIconAlpha"
+                    label = "tabTint"
+                )
+                val pillAlpha by animateFloatAsState(
+                    targetValue = if (isSelected) 1f else 0f,
+                    animationSpec = AnimationEngine.smallTween(),
+                    label = "tabPillAlpha"
                 )
 
                 Column(
@@ -267,36 +273,38 @@ fun DialerBottomBar(
                             onClick = { onTabSelected(index) }
                         )
                 ) {
+                    // Soft rounded "pill" highlight behind the selected icon so the
+                    // active tab reads as a coloured icon, never a solid blob.
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(DesignTokens.iconSize)
+                        modifier = Modifier
+                            .width(56.dp)
+                            .height(30.dp)
+                            .clip(DialerTheme.shapes.pill)
+                            .background(colors.primary.copy(alpha = 0.14f * pillAlpha))
                     ) {
-                        val currentIcon = if (isSelected) tab.selectedIcon else tab.icon
+                        // Always use the outline icon and recolour it; this avoids the
+                        // filled variants collapsing into an unrecognisable silhouette.
                         androidx.compose.foundation.Image(
-                            imageVector = currentIcon,
+                            imageVector = tab.icon,
                             contentDescription = tab.label,
-                            modifier = Modifier
-                                .size(DesignTokens.iconSize)
-                                .graphicsLayer { alpha = iconAlpha },
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(
-                                if (isSelected) colors.primary else colors.onSurfaceVariant
-                            )
+                            modifier = Modifier.size(DesignTokens.iconSize),
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tint)
                         )
                     }
 
-                    Spacer(Modifier.height(2.dp))
+                    Spacer(Modifier.height(3.dp))
 
                     androidx.compose.material3.Text(
                         text = tab.label,
                         style = DialerTheme.typography.caption.copy(
-                            color = if (isSelected) colors.primary else colors.onSurfaceVariant,
+                            color = tint,
                             fontWeight = if (isSelected) {
                                 androidx.compose.ui.text.font.FontWeight.SemiBold
                             } else {
                                 androidx.compose.ui.text.font.FontWeight.Normal
                             }
-                        ),
-                        modifier = Modifier.graphicsLayer { alpha = iconAlpha }
+                        )
                     )
                 }
             }

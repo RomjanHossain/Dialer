@@ -2,8 +2,9 @@ package com.capx.dialer.feature.incall
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.capx.dialer.core.domain.usecase.ObserveActiveCallUseCase
+import com.capx.dialer.core.domain.model.CallState
 import com.capx.dialer.core.domain.repository.TelecomBridge
+import com.capx.dialer.core.domain.usecase.ObserveActiveCallUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -30,24 +31,25 @@ class InCallViewModel @Inject constructor(
         viewModelScope.launch {
             observeActiveCallUseCase().collect { callState ->
                 _state.update { it.copy(callState = callState) }
-                // if callState is Idle or Disconnected, we could trigger Dismiss
+                // Dismiss the in-call screen once the call is over.
+                if (callState is CallState.Idle || callState is CallState.Disconnected) {
+                    _events.send(InCallUiEvent.Dismiss)
+                }
             }
         }
     }
 
-    fun toggleMute() {
-        telecomBridge.toggleMute()
-    }
+    fun answerCall() = telecomBridge.answerCall()
 
-    fun toggleSpeaker() {
-        telecomBridge.toggleSpeaker()
-    }
+    fun rejectCall() = telecomBridge.rejectCall()
 
-    fun toggleHold() {
-        telecomBridge.toggleHold()
-    }
+    fun toggleMute() = telecomBridge.toggleMute()
 
-    fun endCall() {
-        telecomBridge.endCall()
-    }
+    fun toggleSpeaker() = telecomBridge.toggleSpeaker()
+
+    fun toggleHold() = telecomBridge.toggleHold()
+
+    fun endCall() = telecomBridge.endCall()
+
+    fun sendDtmf(digit: Char) = telecomBridge.sendDtmfTone(digit)
 }

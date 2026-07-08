@@ -48,6 +48,7 @@ class CallLogRepositoryImpl @Inject constructor(
             CallLog.Calls._ID,
             CallLog.Calls.NUMBER,
             CallLog.Calls.CACHED_NAME,
+            CallLog.Calls.CACHED_PHOTO_URI,
             CallLog.Calls.TYPE,
             CallLog.Calls.DATE,
             CallLog.Calls.DURATION
@@ -63,6 +64,7 @@ class CallLogRepositoryImpl @Inject constructor(
             val idIdx = cursor.getColumnIndexOrThrow(CallLog.Calls._ID)
             val numberIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
             val nameIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
+            val photoIdx = cursor.getColumnIndex(CallLog.Calls.CACHED_PHOTO_URI)
             val typeIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE)
             val dateIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
             val durationIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
@@ -72,6 +74,7 @@ class CallLogRepositoryImpl @Inject constructor(
                 val id = cursor.getLong(idIdx)
                 val number = cursor.getString(numberIdx).orEmpty()
                 val name = cursor.getString(nameIdx)
+                val photo = if (photoIdx >= 0) cursor.getString(photoIdx) else null
                 val type = cursor.getInt(typeIdx)
                 val date = cursor.getLong(dateIdx)
                 val duration = cursor.getLong(durationIdx)
@@ -80,7 +83,8 @@ class CallLogRepositoryImpl @Inject constructor(
                     RecentCall(
                         id = id,
                         number = number,
-                        contactName = name,
+                        contactName = name?.takeIf { it.isNotBlank() },
+                        contactPhotoUri = photo,
                         type = mapCallType(type),
                         timestamp = date,
                         duration = duration
@@ -99,11 +103,23 @@ class CallLogRepositoryImpl @Inject constructor(
     }
 
     override suspend fun deleteRecentCall(id: Long) {
-        // Implementation
+        try {
+            context.contentResolver.delete(
+                CallLog.Calls.CONTENT_URI,
+                "${CallLog.Calls._ID} = ?",
+                arrayOf(id.toString())
+            )
+        } catch (e: SecurityException) {
+            // Missing WRITE_CALL_LOG — ignore.
+        }
     }
 
     override suspend fun deleteAllRecentCalls() {
-        // Implementation
+        try {
+            context.contentResolver.delete(CallLog.Calls.CONTENT_URI, null, null)
+        } catch (e: SecurityException) {
+            // Missing WRITE_CALL_LOG — ignore.
+        }
     }
 
     private fun mapCallType(systemType: Int): CallType = when (systemType) {

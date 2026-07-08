@@ -1,7 +1,9 @@
 package com.capx.dialer.core.telecom
 
+import android.content.Intent
 import android.telecom.Call
 import android.telecom.InCallService
+import com.capx.dialer.feature.incall.InCallActivity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -29,6 +31,14 @@ class DialerInCallService : InCallService() {
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
         callManager.onCallAdded(call)
+        launchInCallUi()
+    }
+
+    /** Brings up the app's own full-screen calling UI. */
+    private fun launchInCallUi() {
+        val intent = Intent(this, InCallActivity::class.java)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     override fun onCallRemoved(call: Call) {
