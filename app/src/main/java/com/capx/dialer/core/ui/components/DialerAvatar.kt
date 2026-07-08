@@ -20,7 +20,7 @@ import kotlin.math.abs
 /**
  * Palette of soft gradient pairs used for initials avatars. The pair is chosen
  * deterministically from the contact name so a given person always gets the
- * same colour.
+ * same color.
  */
 private val avatarGradients: List<Pair<Color, Color>> = listOf(
     Color(0xFF0A7E8C) to Color(0xFF30B0C7), // teal
@@ -39,7 +39,7 @@ private fun initialsFor(name: String, fallbackNumber: String): String {
         // Use the last digit-ish char of the number, else a phone glyph.
         return fallbackNumber.lastOrNull { it.isLetterOrDigit() }?.uppercase() ?: "#"
     }
-    val parts = trimmed.split(' ', '-', '.').filter { it.isNotBlank() }
+    val parts = trimmed.split(' ', '-', '.', '(').filter { it.isNotBlank() }
     return when {
         parts.size >= 2 -> "${parts.first().first()}${parts.last().first()}".uppercase()
         else -> parts.first().take(2).uppercase()
@@ -54,8 +54,8 @@ private fun gradientFor(key: String): Pair<Color, Color> {
 /**
  * Circular initials avatar with a deterministic gradient background.
  *
- * @param name Contact display name (may be blank for unknown numbers).
- * @param number Fallback used for initials/colour when [name] is blank.
+ * @param name Contact display name (maybe blank for unknown numbers).
+ * @param number Fallback used for initials/color when [name] is blank.
  * @param size Diameter of the avatar.
  */
 @Composable

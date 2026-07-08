@@ -46,6 +46,7 @@ import com.capx.dialer.core.ui.icons.DialerIcons
 import com.capx.dialer.core.ui.theme.DialerTheme
 import com.capx.dialer.core.ui.util.DateFormat
 import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun InCallScreen(
@@ -203,7 +204,7 @@ private fun CallTimer(startTime: Long): String {
     LaunchedEffect(startTime) {
         while (true) {
             now = System.currentTimeMillis()
-            delay(1000)
+            delay(1000.milliseconds)
         }
     }
     val seconds = ((now - startTime).coerceAtLeast(0L)) / 1000
