@@ -3,6 +3,7 @@ package com.capx.dialer.core.ui.components
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
@@ -30,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.capx.dialer.core.domain.model.SimAccount
-import com.capx.dialer.core.ui.animation.AnimationEngine
 import com.capx.dialer.core.ui.icons.DialerIcons
 import com.capx.dialer.core.ui.theme.DesignTokens
 import com.capx.dialer.core.ui.theme.DialerTheme
@@ -60,8 +60,8 @@ fun SimPickerSheet(
         // Scrim
         AnimatedVisibility(
             visible = visible,
-            enter = fadeIn(AnimationEngine.smallTween()),
-            exit = fadeOut(AnimationEngine.smallTween())
+            enter = fadeIn(tween(250)),
+            exit = fadeOut(tween(250))
         ) {
             Box(
                 modifier = Modifier
@@ -78,10 +78,8 @@ fun SimPickerSheet(
         // Sheet
         AnimatedVisibility(
             visible = visible,
-            enter = slideInVertically(AnimationEngine.gentleSpring()) { it } +
-                fadeIn(AnimationEngine.smallTween()),
-            exit = slideOutVertically(AnimationEngine.snappySpring()) { it } +
-                fadeOut(AnimationEngine.smallTween()),
+            enter = slideInVertically(tween(300)) { it } + fadeIn(tween(250)),
+            exit = slideOutVertically(tween(220)) { it } + fadeOut(tween(200)),
             modifier = Modifier.align(Alignment.BottomCenter)
         ) {
             Column(

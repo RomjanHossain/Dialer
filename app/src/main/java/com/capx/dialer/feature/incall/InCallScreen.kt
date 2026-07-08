@@ -6,6 +6,8 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,8 +26,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -295,15 +299,12 @@ private fun RoundActionButton(
     }
 }
 
-/** Bounded-ripple clickable used by the circular in-call buttons. */
-private fun Modifier.androidxClickable(onClick: () -> Unit): Modifier =
-    androidx.compose.ui.composed {
-        val interaction = remember {
-            androidx.compose.foundation.interaction.MutableInteractionSource()
-        }
-        androidx.compose.foundation.clickable(
-            interactionSource = interaction,
-            indication = androidx.compose.material.ripple.rememberRipple(bounded = false),
-            onClick = onClick
-        )
-    }
+/** Ripple clickable used by the circular in-call buttons. */
+private fun Modifier.androidxClickable(onClick: () -> Unit): Modifier = composed {
+    val interaction = remember { MutableInteractionSource() }
+    clickable(
+        interactionSource = interaction,
+        indication = rememberRipple(bounded = false),
+        onClick = onClick
+    )
+}

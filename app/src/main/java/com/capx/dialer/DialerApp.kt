@@ -5,6 +5,7 @@ import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -102,7 +104,6 @@ fun DialerApp(mainViewModel: MainViewModel = hiltViewModel()) {
             secondaryText = "Not now",
             onSecondaryClick = { skippedDefaultPrompt = true }
         )
-
         else -> MainShell(mainViewModel = mainViewModel)
     }
 }
@@ -213,21 +214,11 @@ private fun SetupScreen(
                     style = DialerTheme.typography.body,
                     color = colors.textSecondary,
                     modifier = Modifier
-                        .padding(8.dp)
-                        .androidxClickable(onSecondaryClick)
+                        .clip(DialerTheme.shapes.pill)
+                        .clickable(onClick = onSecondaryClick)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
                 )
             }
         }
     }
 }
-
-private fun Modifier.androidxClickable(onClick: () -> Unit): Modifier =
-    androidx.compose.ui.composed {
-        androidx.compose.foundation.clickable(
-            interactionSource = remember {
-                androidx.compose.foundation.interaction.MutableInteractionSource()
-            },
-            indication = null,
-            onClick = onClick
-        )
-    }
