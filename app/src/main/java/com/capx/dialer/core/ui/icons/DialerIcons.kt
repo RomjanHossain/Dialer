@@ -796,6 +796,27 @@ object DialerIcons {
         }.build()
     }
 
+    val ChevronLeft: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "ChevronLeft",
+            defaultWidth = defaultSize,
+            defaultHeight = defaultSize,
+            viewportWidth = viewportSize,
+            viewportHeight = viewportSize
+        ).apply {
+            path(
+                stroke = strokeColor,
+                strokeLineWidth = defaultStrokeWidth,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round
+            ) {
+                moveTo(15f, 18f)
+                lineTo(9f, 12f)
+                lineTo(15f, 6f)
+            }
+        }.build()
+    }
+
     // ── Call State Icons ────────────────────────────────────────────────────
 
     val CallMissed: ImageVector by lazy {

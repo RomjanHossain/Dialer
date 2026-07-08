@@ -87,6 +87,10 @@ class TelecomBridgeImpl @Inject constructor(
         callManager.toggleHold()
     }
 
+    override fun toggleRecording() {
+        callManager.toggleRecording()
+    }
+
     override fun sendDtmfTone(digit: Char) {
         callManager.sendDtmfTone(digit)
     }

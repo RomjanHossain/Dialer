@@ -49,6 +49,8 @@ class InCallViewModel @Inject constructor(
 
     fun toggleHold() = telecomBridge.toggleHold()
 
+    fun toggleRecording() = telecomBridge.toggleRecording()
+
     fun endCall() = telecomBridge.endCall()
 
     fun sendDtmf(digit: Char) = telecomBridge.sendDtmfTone(digit)

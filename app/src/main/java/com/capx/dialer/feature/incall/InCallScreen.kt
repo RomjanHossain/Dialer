@@ -133,6 +133,7 @@ fun InCallScreen(
             // Control bar (only meaningful while connected/dialing)
             if (callState !is CallState.Ringing) {
                 val active = callState as? CallState.Active
+                val context = androidx.compose.ui.platform.LocalContext.current
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceEvenly
@@ -153,13 +154,23 @@ fun InCallScreen(
                         icon = DialerIcons.Record,
                         label = "Record",
                         active = active?.isRecording == true,
-                        onClick = { /* recording toggle wired by recording feature */ }
+                        activeColor = colors.recordingRed,
+                        onClick = viewModel::toggleRecording
                     )
                     ControlButton(
                         icon = DialerIcons.AddCall,
                         label = "Add",
                         active = false,
-                        onClick = { /* add-call handled by telecom feature */ }
+                        onClick = {
+                            runCatching {
+                                context.startActivity(
+                                    android.content.Intent(
+                                        context,
+                                        com.capx.dialer.MainActivity::class.java
+                                    ).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                                )
+                            }
+                        }
                     )
                 }
                 Spacer(Modifier.height(36.dp))
@@ -247,11 +258,12 @@ private fun ControlButton(
     icon: ImageVector,
     label: String,
     active: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    activeColor: Color = DialerTheme.colors.primary
 ) {
     val colors = DialerTheme.colors
-    val bg = if (active) colors.primary else colors.surface
-    val tint = if (active) colors.onPrimary else colors.textPrimary
+    val bg = if (active) activeColor else colors.surface
+    val tint = if (active) Color.White else colors.textPrimary
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             contentAlignment = Alignment.Center,

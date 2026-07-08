@@ -64,6 +64,12 @@ interface TelecomBridge {
     fun toggleHold()
 
     /**
+     * Starts or stops recording the active call. Reflected in
+     * [com.capx.dialer.core.domain.model.CallState.Active.isRecording].
+     */
+    fun toggleRecording()
+
+    /**
      * Sends a DTMF (Dual-Tone Multi-Frequency) tone for the given [digit].
      *
      * Valid digits are '0'-'9', '*', and '#'.

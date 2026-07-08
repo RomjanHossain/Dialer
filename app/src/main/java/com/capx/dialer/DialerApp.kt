@@ -39,6 +39,7 @@ import com.capx.dialer.core.ui.components.DialerTab
 import com.capx.dialer.core.ui.components.SimPickerSheet
 import com.capx.dialer.core.ui.icons.DialerIcons
 import com.capx.dialer.core.ui.theme.DialerTheme
+import com.capx.dialer.feature.calllog.CallLogDetailScreen
 import com.capx.dialer.feature.contacts.ContactsScreen
 import com.capx.dialer.feature.dialpad.DialpadScreen
 import com.capx.dialer.feature.recents.RecentsScreen
@@ -68,10 +69,23 @@ fun DialerApp(mainViewModel: MainViewModel = hiltViewModel()) {
     var isDefaultDialer by remember { mutableStateOf(DefaultDialer.isDefault(context)) }
     var skippedDefaultPrompt by remember { mutableStateOf(false) }
 
+    // Notifications are requested too (Android 13+) but are NOT required to
+    // proceed — the call notification is best-effort.
+    val permissionsToRequest = remember {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            REQUIRED_PERMISSIONS + Manifest.permission.POST_NOTIFICATIONS
+        } else {
+            REQUIRED_PERMISSIONS
+        }
+    }
+
     val permissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { result ->
-        permissionsGranted = result.values.all { it }
+    ) {
+        // Recompute from the actual grant state so optional permissions don't block.
+        permissionsGranted = REQUIRED_PERMISSIONS.all {
+            ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+        }
         if (permissionsGranted) mainViewModel.refreshSims()
     }
 
@@ -91,7 +105,7 @@ fun DialerApp(mainViewModel: MainViewModel = hiltViewModel()) {
             title = "Permissions Required",
             message = "The dialer needs access to your contacts, call log, phone, and microphone to work properly.",
             buttonText = "Grant Permissions",
-            onButtonClick = { permissionLauncher.launch(REQUIRED_PERMISSIONS) }
+            onButtonClick = { permissionLauncher.launch(permissionsToRequest) }
         )
 
         !isDefaultDialer && !skippedDefaultPrompt -> SetupScreen(
@@ -155,13 +169,24 @@ private fun MainShell(mainViewModel: MainViewModel) {
                         )
                     }
                     composable("recents") {
-                        RecentsScreen(onCall = mainViewModel::requestCall)
+                        RecentsScreen(
+                            onCall = mainViewModel::requestCall,
+                            onOpenCallLog = { number ->
+                                navController.navigate("calllog/${android.net.Uri.encode(number)}")
+                            }
+                        )
                     }
                     composable("contacts") {
                         ContactsScreen(onCall = mainViewModel::requestCall)
                     }
                     composable("recordings") {
                         RecordingsScreen()
+                    }
+                    composable("calllog/{number}") {
+                        CallLogDetailScreen(
+                            onBack = { navController.popBackStack() },
+                            onCall = mainViewModel::requestCall
+                        )
                     }
                 }
             }

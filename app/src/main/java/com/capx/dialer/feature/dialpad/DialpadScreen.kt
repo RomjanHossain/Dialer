@@ -75,6 +75,7 @@ fun DialpadScreen(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // ── Suggestions / number preview area ────────────────────────────
+        val context = androidx.compose.ui.platform.LocalContext.current
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             if (state.suggestedContacts.isNotEmpty()) {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
@@ -85,6 +86,15 @@ fun DialpadScreen(
                         )
                     }
                 }
+            } else if (state.currentNumber.length >= 3) {
+                // No saved contact matches — offer to create one.
+                AddContactRow(
+                    number = state.currentNumber,
+                    modifier = Modifier.align(Alignment.BottomCenter),
+                    onClick = {
+                        com.capx.dialer.core.ui.util.ContactIntents.create(context, state.currentNumber)
+                    }
+                )
             }
         }
 
@@ -230,6 +240,54 @@ private fun DialpadKey(
                     )
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun AddContactRow(
+    number: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = DialerTheme.colors
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(DialerTheme.shapes.medium)
+            .clickable(onClick = onClick)
+            .padding(vertical = 12.dp, horizontal = 8.dp)
+    ) {
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier = Modifier
+                .size(44.dp)
+                .clip(CircleShape)
+                .background(colors.primary.copy(alpha = 0.14f))
+        ) {
+            androidx.compose.foundation.Image(
+                imageVector = DialerIcons.AddCall,
+                contentDescription = null,
+                modifier = Modifier.size(20.dp),
+                colorFilter = ColorFilter.tint(colors.primary)
+            )
+        }
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Create new contact",
+                style = DialerTheme.typography.body.copy(
+                    color = colors.primary,
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = 1
+            )
+            Text(
+                text = number,
+                style = DialerTheme.typography.bodySmall.copy(color = colors.textSecondary),
+                maxLines = 1
+            )
         }
     }
 }

@@ -26,11 +26,13 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import com.capx.dialer.core.ui.theme.DesignTokens
+import kotlinx.coroutines.launch
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Spring Specs
@@ -154,8 +156,11 @@ fun pulseTransition(): PulseValues {
 
 /**
  * Adds a spring-loaded press effect to any composable. On press-down the
- * element scales to [pressedScale]; on release it springs back to 1 f
- * using the default spring spec.
+ * element scales to [pressedScale]; on release it springs back to 1 f.
+ *
+ * The scale animations run in a separate coroutine so they never block the
+ * gesture, and [onPress] fires on tap (release) immediately — this keeps rapid
+ * dial-pad typing responsive instead of throttling to the animation duration.
  *
  * @param pressedScale Scale multiplier while pressed (default 0.92 f).
  * @param onPress      Callback invoked on successful tap.
@@ -165,6 +170,7 @@ fun Modifier.pressAnimation(
     onPress: () -> Unit = {}
 ): Modifier = composed {
     val scale = remember { Animatable(1f) }
+    val scope = rememberCoroutineScope()
 
     this
         .graphicsLayer {
@@ -174,11 +180,11 @@ fun Modifier.pressAnimation(
         .pointerInput(Unit) {
             detectTapGestures(
                 onPress = {
-                    scale.animateTo(pressedScale, AnimationEngine.defaultSpring())
+                    scope.launch { scale.animateTo(pressedScale, AnimationEngine.snappySpring()) }
                     tryAwaitRelease()
-                    scale.animateTo(1f, AnimationEngine.defaultSpring())
-                    onPress()
-                }
+                    scope.launch { scale.animateTo(1f, AnimationEngine.defaultSpring()) }
+                },
+                onTap = { onPress() }
             )
         }
 }

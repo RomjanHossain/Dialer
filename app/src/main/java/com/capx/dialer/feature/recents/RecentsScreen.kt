@@ -41,10 +41,12 @@ import com.capx.dialer.core.ui.util.DateFormat
 @Composable
 fun RecentsScreen(
     viewModel: RecentsViewModel = hiltViewModel(),
-    onCall: (String) -> Unit
+    onCall: (String) -> Unit,
+    onOpenCallLog: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = DialerTheme.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -80,7 +82,11 @@ fun RecentsScreen(
                             count = group.count,
                             timeLabel = DateFormat.relative(group.timestamp),
                             durationLabel = DateFormat.duration(group.duration),
-                            onCall = { viewModel.onCallClick(group.number) }
+                            onCall = { viewModel.onCallClick(group.number) },
+                            onOpenDetail = { onOpenCallLog(group.number) },
+                            onOpenContact = {
+                                com.capx.dialer.core.ui.util.ContactIntents.viewOrCreate(context, group.number)
+                            }
                         )
                         DialerDivider(startIndent = 80.dp)
                     }
@@ -99,7 +105,9 @@ private fun RecentRow(
     count: Int,
     timeLabel: String,
     durationLabel: String,
-    onCall: () -> Unit
+    onCall: () -> Unit,
+    onOpenDetail: () -> Unit,
+    onOpenContact: () -> Unit
 ) {
     val colors = DialerTheme.colors
     val isMissed = type == CallType.MISSED || type == CallType.REJECTED
@@ -110,10 +118,15 @@ private fun RecentRow(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onCall)
+            .clickable(onClick = onOpenDetail)
             .padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
-        DialerAvatar(name = name.orEmpty(), number = number, size = 48.dp)
+        DialerAvatar(
+            name = name.orEmpty(),
+            number = number,
+            size = 48.dp,
+            modifier = Modifier.clip(CircleShape).clickable(onClick = onOpenContact)
+        )
         Spacer(Modifier.width(14.dp))
 
         Column(modifier = Modifier.weight(1f)) {

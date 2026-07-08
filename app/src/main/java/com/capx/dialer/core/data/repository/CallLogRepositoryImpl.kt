@@ -98,9 +98,52 @@ class CallLogRepositoryImpl @Inject constructor(
     }.flowOn(Dispatchers.IO)
 
     override fun getRecentCallsByNumber(number: String): Flow<List<RecentCall>> = flow {
-        // Basic placeholder implementation
-        emit(emptyList())
-    }
+        val calls = mutableListOf<RecentCall>()
+
+        val projection = arrayOf(
+            CallLog.Calls._ID,
+            CallLog.Calls.NUMBER,
+            CallLog.Calls.CACHED_NAME,
+            CallLog.Calls.CACHED_PHOTO_URI,
+            CallLog.Calls.TYPE,
+            CallLog.Calls.DATE,
+            CallLog.Calls.DURATION
+        )
+
+        context.contentResolver.query(
+            CallLog.Calls.CONTENT_URI,
+            projection,
+            "${CallLog.Calls.NUMBER} = ?",
+            arrayOf(number),
+            "${CallLog.Calls.DATE} DESC"
+        )?.use { cursor ->
+            val idIdx = cursor.getColumnIndexOrThrow(CallLog.Calls._ID)
+            val numberIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
+            val nameIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
+            val photoIdx = cursor.getColumnIndex(CallLog.Calls.CACHED_PHOTO_URI)
+            val typeIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.TYPE)
+            val dateIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.DATE)
+            val durationIdx = cursor.getColumnIndexOrThrow(CallLog.Calls.DURATION)
+
+            var count = 0
+            while (cursor.moveToNext() && count < MAX_ENTRIES) {
+                calls.add(
+                    RecentCall(
+                        id = cursor.getLong(idIdx),
+                        number = cursor.getString(numberIdx).orEmpty(),
+                        contactName = cursor.getString(nameIdx)?.takeIf { it.isNotBlank() },
+                        contactPhotoUri = if (photoIdx >= 0) cursor.getString(photoIdx) else null,
+                        type = mapCallType(cursor.getInt(typeIdx)),
+                        timestamp = cursor.getLong(dateIdx),
+                        duration = cursor.getLong(durationIdx)
+                    )
+                )
+                count++
+            }
+        }
+
+        emit(calls)
+    }.flowOn(Dispatchers.IO)
 
     override suspend fun deleteRecentCall(id: Long) {
         try {
