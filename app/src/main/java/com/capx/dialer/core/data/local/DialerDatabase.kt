@@ -23,7 +23,7 @@ import com.capx.dialer.core.data.local.entity.RecordingEntity
         FavoriteEntity::class
     ],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 abstract class DialerDatabase : RoomDatabase() {
 

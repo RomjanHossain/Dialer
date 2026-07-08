@@ -1,6 +1,10 @@
 package com.capx.dialer.di
 
 import android.content.Context
+import androidx.room.Room
+import com.capx.dialer.core.data.local.DialerDatabase
+import com.capx.dialer.core.data.local.dao.FavoriteDao
+import com.capx.dialer.core.data.local.dao.RecordingDao
 import com.capx.dialer.core.data.repository.CallLogRepositoryImpl
 import com.capx.dialer.core.data.repository.ContactRepositoryImpl
 import com.capx.dialer.core.data.repository.RecordingRepositoryImpl
@@ -20,8 +24,33 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideContactRepository(@ApplicationContext context: Context): ContactRepository {
-        return ContactRepositoryImpl(context)
+    fun provideDialerDatabase(@ApplicationContext context: Context): DialerDatabase {
+        return Room.databaseBuilder(
+            context,
+            DialerDatabase::class.java,
+            DialerDatabase.DATABASE_NAME
+        ).build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideFavoriteDao(database: DialerDatabase): FavoriteDao {
+        return database.favoriteDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideRecordingDao(database: DialerDatabase): RecordingDao {
+        return database.recordingDao()
+    }
+
+    @Provides
+    @Singleton
+    fun provideContactRepository(
+        @ApplicationContext context: Context,
+        favoriteDao: FavoriteDao
+    ): ContactRepository {
+        return ContactRepositoryImpl(context, favoriteDao)
     }
 
     @Provides
@@ -32,7 +61,7 @@ object DataModule {
 
     @Provides
     @Singleton
-    fun provideRecordingRepository(): RecordingRepository {
-        return RecordingRepositoryImpl()
+    fun provideRecordingRepository(recordingDao: RecordingDao): RecordingRepository {
+        return RecordingRepositoryImpl(recordingDao)
     }
 }

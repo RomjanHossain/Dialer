@@ -19,7 +19,7 @@ interface RecordingDao {
     /**
      * Observes all recordings ordered by creation date (newest first).
      */
-    @Query("SELECT * FROM recordings ORDER BY createdAt DESC")
+    @Query("SELECT * FROM recordings ORDER BY timestamp DESC")
     fun getAllRecordings(): Flow<List<RecordingEntity>>
 
     /**

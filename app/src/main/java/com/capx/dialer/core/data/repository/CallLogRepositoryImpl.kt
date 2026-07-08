@@ -81,9 +81,9 @@ class CallLogRepositoryImpl @Inject constructor(
                         id = id,
                         number = number,
                         contactName = name,
-                        callType = mapCallType(type),
+                        type = mapCallType(type),
                         timestamp = date,
-                        durationSeconds = duration
+                        duration = duration
                     )
                 )
                 count++
@@ -93,20 +93,25 @@ class CallLogRepositoryImpl @Inject constructor(
         emit(calls)
     }.flowOn(Dispatchers.IO)
 
-    // ──────────────────────────────────────────────────────────────
-    //  Private helpers
-    // ──────────────────────────────────────────────────────────────
+    override fun getRecentCallsByNumber(number: String): Flow<List<RecentCall>> = flow {
+        // Basic placeholder implementation
+        emit(emptyList())
+    }
 
-    /**
-     * Maps the system [CallLog.Calls.TYPE] integer constants to the
-     * domain [CallType] sealed hierarchy.
-     */
+    override suspend fun deleteRecentCall(id: Long) {
+        // Implementation
+    }
+
+    override suspend fun deleteAllRecentCalls() {
+        // Implementation
+    }
+
     private fun mapCallType(systemType: Int): CallType = when (systemType) {
-        CallLog.Calls.INCOMING_TYPE -> CallType.Incoming
-        CallLog.Calls.OUTGOING_TYPE -> CallType.Outgoing
-        CallLog.Calls.MISSED_TYPE -> CallType.Missed
-        CallLog.Calls.REJECTED_TYPE -> CallType.Rejected
-        CallLog.Calls.BLOCKED_TYPE -> CallType.Blocked
-        else -> CallType.Unknown
+        CallLog.Calls.INCOMING_TYPE -> CallType.INCOMING
+        CallLog.Calls.OUTGOING_TYPE -> CallType.OUTGOING
+        CallLog.Calls.MISSED_TYPE -> CallType.MISSED
+        CallLog.Calls.REJECTED_TYPE -> CallType.REJECTED
+        CallLog.Calls.BLOCKED_TYPE -> CallType.BLOCKED
+        else -> CallType.INCOMING
     }
 }

@@ -24,7 +24,7 @@ class RecordingRepositoryImpl @Inject constructor(
     /**
      * Observes all recordings, mapped to domain models.
      */
-    override fun getAllRecordings(): Flow<List<Recording>> =
+    override fun getRecordings(): Flow<List<Recording>> =
         recordingDao.getAllRecordings().map { entities ->
             entities.map { it.toDomain() }
         }
@@ -51,7 +51,7 @@ class RecordingRepositoryImpl @Inject constructor(
      * @param recording The domain model to store.
      * @return The auto-generated ID assigned by Room.
      */
-    override suspend fun insertRecording(recording: Recording): Long =
+    override suspend fun saveRecording(recording: Recording): Long =
         recordingDao.insertRecording(recording.toEntity())
 
     /**

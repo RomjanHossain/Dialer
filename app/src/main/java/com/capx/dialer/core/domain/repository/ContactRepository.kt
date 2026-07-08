@@ -49,7 +49,7 @@ interface ContactRepository {
      * @param number The phone number to look up.
      * @return The matching [Contact], or null if no contact is found.
      */
-    fun getContactByNumber(number: String): Contact?
+    suspend fun getContactByNumber(number: String): Contact?
 
     /**
      * Toggles the favorite status of the contact with the given [contactId].
