@@ -39,7 +39,7 @@ import com.capx.dialer.core.ui.components.DialerTab
 import com.capx.dialer.core.ui.components.SimPickerSheet
 import com.capx.dialer.core.ui.icons.DialerIcons
 import com.capx.dialer.core.ui.theme.DialerTheme
-import com.capx.dialer.feature.calllog.CallLogDetailScreen
+import com.capx.dialer.feature.calllog.CallLogDetailSheet
 import com.capx.dialer.feature.contacts.ContactsScreen
 import com.capx.dialer.feature.dialpad.DialpadScreen
 import com.capx.dialer.feature.recents.RecentsScreen
@@ -122,6 +122,7 @@ fun DialerApp(mainViewModel: MainViewModel = hiltViewModel()) {
     }
 }
 
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun MainShell(mainViewModel: MainViewModel) {
     val navController = rememberNavController()
@@ -171,9 +172,7 @@ private fun MainShell(mainViewModel: MainViewModel) {
                     composable("recents") {
                         RecentsScreen(
                             onCall = mainViewModel::requestCall,
-                            onOpenCallLog = { number ->
-                                navController.navigate("calllog/${android.net.Uri.encode(number)}")
-                            }
+                            onOpenCallLog = mainViewModel::openCallLog
                         )
                     }
                     composable("contacts") {
@@ -181,12 +180,6 @@ private fun MainShell(mainViewModel: MainViewModel) {
                     }
                     composable("recordings") {
                         RecordingsScreen()
-                    }
-                    composable("calllog/{number}") {
-                        CallLogDetailScreen(
-                            onBack = { navController.popBackStack() },
-                            onCall = mainViewModel::requestCall
-                        )
                     }
                 }
             }
@@ -199,6 +192,23 @@ private fun MainShell(mainViewModel: MainViewModel) {
             onSelect = mainViewModel::onSimChosen,
             onDismiss = mainViewModel::dismissSimPicker
         )
+    }
+
+    // Call-log detail as a bottom sheet.
+    val detail = callState.callLog
+    if (detail != null) {
+        androidx.compose.material3.ModalBottomSheet(
+            onDismissRequest = mainViewModel::closeCallLog,
+            containerColor = DialerTheme.colors.surface
+        ) {
+            CallLogDetailSheet(
+                state = detail,
+                onCall = { number ->
+                    mainViewModel.closeCallLog()
+                    mainViewModel.requestCall(number)
+                }
+            )
+        }
     }
 }
 

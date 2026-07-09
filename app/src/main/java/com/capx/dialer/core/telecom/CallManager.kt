@@ -9,9 +9,14 @@ import android.telecom.InCallService
 import android.telecom.VideoProfile
 import com.capx.dialer.core.domain.model.CallState
 import com.capx.dialer.core.domain.model.DisconnectReason
+import com.capx.dialer.core.domain.repository.ContactRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 /**
  * Central holder for the active call and its controls. The [DialerInCallService]
@@ -24,10 +29,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * or it would duplicate that binding.
  */
 class CallManager(
-    private val context: Context
+    private val context: Context,
+    private val contactRepository: ContactRepository
 ) {
     private val _callState = MutableStateFlow<CallState>(CallState.Idle)
     val callState: StateFlow<CallState> = _callState.asStateFlow()
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     internal var activeCall: Call? = null
         private set
@@ -39,6 +47,10 @@ class CallManager(
     private var isMuted = false
     private var isSpeakerOn = false
     private var isRecording = false
+
+    // Resolved contact info for the active call (null = not a saved contact).
+    private var contactName: String? = null
+    private var contactPhoto: String? = null
 
     private val callCallback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) = updateCallState(call)
@@ -70,8 +82,23 @@ class CallManager(
             return
         }
         activeCall = call
+        contactName = null
+        contactPhoto = null
         call.registerCallback(callCallback)
         updateCallState(call)
+        resolveContact(call)
+    }
+
+    /** Looks up the caller's saved name/photo and refreshes the state. */
+    private fun resolveContact(call: Call) {
+        val number = call.details?.handle?.schemeSpecificPart ?: return
+        if (number.isBlank()) return
+        scope.launch {
+            val contact = runCatching { contactRepository.getContactByNumber(number) }.getOrNull()
+            contactName = contact?.name?.takeIf { it.isNotBlank() }
+            contactPhoto = contact?.photoUri
+            activeCall?.let { updateCallState(it) }
+        }
     }
 
     fun onCallRemoved(call: Call) {
@@ -88,16 +115,19 @@ class CallManager(
 
     private fun updateCallState(call: Call) {
         val number = call.details?.handle?.schemeSpecificPart ?: "Unknown"
+        val name = contactName
         val state = when (call.state) {
-            Call.STATE_CONNECTING, Call.STATE_DIALING -> CallState.Dialing(number)
-            Call.STATE_RINGING -> CallState.Ringing(number)
+            Call.STATE_CONNECTING, Call.STATE_DIALING -> CallState.Dialing(number, name)
+            Call.STATE_RINGING -> CallState.Ringing(number, name)
             Call.STATE_ACTIVE -> CallState.Active(
                 number = number,
+                contactName = name,
+                contactPhotoUri = contactPhoto,
                 isMuted = isMuted,
                 isSpeakerOn = isSpeakerOn,
                 isRecording = isRecording
             )
-            Call.STATE_HOLDING -> CallState.OnHold(number)
+            Call.STATE_HOLDING -> CallState.OnHold(number, name)
             Call.STATE_DISCONNECTED -> CallState.Disconnected()
             else -> CallState.Idle
         }

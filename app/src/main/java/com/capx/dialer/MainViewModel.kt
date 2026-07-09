@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capx.dialer.core.domain.model.SimAccount
 import com.capx.dialer.core.domain.usecase.DialNumberUseCase
+import com.capx.dialer.core.domain.usecase.GetRecentCallsByNumberUseCase
 import com.capx.dialer.core.domain.usecase.GetSimAccountsUseCase
+import com.capx.dialer.feature.calllog.CallLogDetailUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,23 +19,28 @@ import javax.inject.Inject
 
 /**
  * App-level view model shared by every screen. It owns the single source of
- * truth for placing calls so that Dialpad, Recents and Contacts all funnel
- * through the same fast SIM-selection flow instead of the slow OS chooser.
+ * truth for placing calls (so every screen funnels through the same fast
+ * SIM-selection flow) and for the call-log detail bottom sheet.
  */
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val getSimAccountsUseCase: GetSimAccountsUseCase,
-    private val dialNumberUseCase: DialNumberUseCase
+    private val dialNumberUseCase: DialNumberUseCase,
+    private val getRecentCallsByNumberUseCase: GetRecentCallsByNumberUseCase
 ) : ViewModel() {
 
     data class UiState(
         val sims: List<SimAccount> = emptyList(),
         /** Number awaiting a SIM choice; non-null shows the SIM picker sheet. */
-        val pendingCallNumber: String? = null
+        val pendingCallNumber: String? = null,
+        /** Non-null while the call-log detail bottom sheet is open. */
+        val callLog: CallLogDetailUiState? = null
     )
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private var callLogJob: Job? = null
 
     /** Load SIM accounts up-front so the picker can appear instantly. */
     fun refreshSims() {
@@ -65,5 +73,33 @@ class MainViewModel @Inject constructor(
 
     fun dismissSimPicker() {
         _state.update { it.copy(pendingCallNumber = null) }
+    }
+
+    // ── Call-log detail sheet ─────────────────────────────────────────────
+
+    fun openCallLog(number: String) {
+        callLogJob?.cancel()
+        _state.update { it.copy(callLog = CallLogDetailUiState(number = number, isLoading = true)) }
+        callLogJob = viewModelScope.launch {
+            getRecentCallsByNumberUseCase(number).collect { calls ->
+                val head = calls.firstOrNull()
+                _state.update {
+                    it.copy(
+                        callLog = it.callLog?.copy(
+                            calls = calls,
+                            name = head?.contactName,
+                            photoUri = head?.contactPhotoUri,
+                            isLoading = false
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    fun closeCallLog() {
+        callLogJob?.cancel()
+        callLogJob = null
+        _state.update { it.copy(callLog = null) }
     }
 }

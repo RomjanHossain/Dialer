@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,42 +26,40 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.capx.dialer.core.domain.model.CallType
 import com.capx.dialer.core.ui.components.DialerAvatar
 import com.capx.dialer.core.ui.components.DialerDivider
 import com.capx.dialer.core.ui.icons.DialerIcons
+import com.capx.dialer.core.ui.theme.DialerColorScheme
 import com.capx.dialer.core.ui.theme.DialerTheme
 import com.capx.dialer.core.ui.util.ContactIntents
 import com.capx.dialer.core.ui.util.DateFormat
 
+/**
+ * Stateless content for the call-log detail bottom sheet. State is owned by
+ * [com.capx.dialer.MainViewModel] and passed in, so this renders inside a
+ * ModalBottomSheet rather than a full-screen route.
+ */
 @Composable
-fun CallLogDetailScreen(
-    onBack: () -> Unit,
-    onCall: (String) -> Unit,
-    viewModel: CallLogDetailViewModel = hiltViewModel()
+fun CallLogDetailSheet(
+    state: CallLogDetailUiState,
+    onCall: (String) -> Unit
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = DialerTheme.colors
     val context = LocalContext.current
     val title = state.name?.takeIf { it.isNotBlank() } ?: state.number
 
-    Column(modifier = Modifier.fillMaxSize().background(colors.background)) {
-        // Top bar with back
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp)
-        ) {
-            IconCircle(icon = DialerIcons.ChevronLeft, description = "Back", onClick = onBack)
-        }
-
-        // Header card
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 24.dp)
+    ) {
+        // Header
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+            modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp)
         ) {
-            DialerAvatar(name = state.name.orEmpty(), number = state.number, size = 96.dp)
+            DialerAvatar(name = state.name.orEmpty(), number = state.number, size = 84.dp)
             Spacer(Modifier.height(12.dp))
             androidx.compose.material3.Text(
                 text = title,
@@ -99,7 +96,7 @@ fun CallLogDetailScreen(
         Spacer(Modifier.height(8.dp))
         DialerDivider()
 
-        LazyColumn(modifier = Modifier.fillMaxSize()) {
+        LazyColumn(modifier = Modifier.fillMaxWidth().heightIn(max = 360.dp)) {
             items(state.calls, key = { it.id }) { call ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -163,25 +160,6 @@ private fun HeaderAction(icon: ImageVector, label: String, tint: Color, onClick:
     }
 }
 
-@Composable
-private fun IconCircle(icon: ImageVector, description: String, onClick: () -> Unit) {
-    val colors = DialerTheme.colors
-    Box(
-        contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(44.dp)
-            .clip(CircleShape)
-            .clickable(onClick = onClick)
-    ) {
-        androidx.compose.foundation.Image(
-            imageVector = icon,
-            contentDescription = description,
-            modifier = Modifier.size(24.dp),
-            colorFilter = ColorFilter.tint(colors.textPrimary)
-        )
-    }
-}
-
 private fun typeLabel(type: CallType): String = when (type) {
     CallType.INCOMING -> "Incoming call"
     CallType.OUTGOING -> "Outgoing call"
@@ -196,10 +174,7 @@ private fun directionIcon(type: CallType): ImageVector = when (type) {
     else -> DialerIcons.CallIncoming
 }
 
-private fun directionColor(
-    type: CallType,
-    colors: com.capx.dialer.core.ui.theme.DialerColorScheme
-): Color = when (type) {
+private fun directionColor(type: CallType, colors: DialerColorScheme): Color = when (type) {
     CallType.MISSED, CallType.REJECTED, CallType.BLOCKED -> colors.callRed
     CallType.OUTGOING -> colors.callGreen
     else -> colors.textSecondary

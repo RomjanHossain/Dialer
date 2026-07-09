@@ -12,9 +12,10 @@ data class RecentCallGroup(
     val name: String?,
     val photoUri: String?,
     val type: CallType,
-    val timestamp: Long,
-    val duration: Long,
-    val count: Int
+    val count: Int,
+    /** Pre-formatted labels so rows stay cheap to render while scrolling. */
+    val timeLabel: String,
+    val subtitle: String
 )
 
 data class RecentsUiState(

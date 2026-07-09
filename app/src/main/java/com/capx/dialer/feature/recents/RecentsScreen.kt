@@ -36,7 +36,6 @@ import com.capx.dialer.core.ui.components.DialerDivider
 import com.capx.dialer.core.ui.components.ScreenHeader
 import com.capx.dialer.core.ui.icons.DialerIcons
 import com.capx.dialer.core.ui.theme.DialerTheme
-import com.capx.dialer.core.ui.util.DateFormat
 
 @Composable
 fun RecentsScreen(
@@ -77,11 +76,9 @@ fun RecentsScreen(
                         RecentRow(
                             name = group.name?.takeIf { it.isNotBlank() },
                             number = group.number,
-                            photoUri = group.photoUri,
                             type = group.type,
                             count = group.count,
-                            timeLabel = DateFormat.relative(group.timestamp),
-                            durationLabel = DateFormat.duration(group.duration),
+                            subtitle = group.subtitle,
                             onCall = { viewModel.onCallClick(group.number) },
                             onOpenDetail = { onOpenCallLog(group.number) },
                             onOpenContact = {
@@ -100,11 +97,9 @@ fun RecentsScreen(
 private fun RecentRow(
     name: String?,
     number: String,
-    photoUri: String?,
     type: CallType,
     count: Int,
-    timeLabel: String,
-    durationLabel: String,
+    subtitle: String,
     onCall: () -> Unit,
     onOpenDetail: () -> Unit,
     onOpenContact: () -> Unit
@@ -148,7 +143,7 @@ private fun RecentRow(
                 )
                 Spacer(Modifier.width(6.dp))
                 androidx.compose.material3.Text(
-                    text = subtitle(type, timeLabel, durationLabel),
+                    text = subtitle,
                     style = DialerTheme.typography.bodySmall.copy(color = colors.textSecondary),
                     maxLines = 1
                 )
@@ -172,24 +167,6 @@ private fun RecentRow(
             )
         }
     }
-}
-
-private fun subtitle(type: CallType, time: String, duration: String): String {
-    val label = when (type) {
-        CallType.INCOMING -> "Incoming"
-        CallType.OUTGOING -> "Outgoing"
-        CallType.MISSED -> "Missed"
-        CallType.REJECTED -> "Declined"
-        CallType.BLOCKED -> "Blocked"
-    }
-    val parts = buildList {
-        add(label)
-        if (time.isNotBlank()) add(time)
-        if (duration.isNotBlank() && (type == CallType.INCOMING || type == CallType.OUTGOING)) {
-            add(duration)
-        }
-    }
-    return parts.joinToString(" · ")
 }
 
 private fun directionIcon(type: CallType): ImageVector = when (type) {

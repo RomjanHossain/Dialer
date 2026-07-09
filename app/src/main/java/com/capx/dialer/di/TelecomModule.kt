@@ -1,6 +1,7 @@
 package com.capx.dialer.di
 
 import android.content.Context
+import com.capx.dialer.core.domain.repository.ContactRepository
 import com.capx.dialer.core.domain.repository.TelecomBridge
 import com.capx.dialer.core.telecom.CallManager
 import com.capx.dialer.core.telecom.TelecomBridgeImpl
@@ -17,8 +18,11 @@ object TelecomModule {
 
     @Provides
     @Singleton
-    fun provideCallManager(@ApplicationContext context: Context): CallManager {
-        return CallManager(context)
+    fun provideCallManager(
+        @ApplicationContext context: Context,
+        contactRepository: ContactRepository
+    ): CallManager {
+        return CallManager(context, contactRepository)
     }
 
     @Provides

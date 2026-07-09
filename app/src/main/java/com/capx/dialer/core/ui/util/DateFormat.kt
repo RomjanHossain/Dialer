@@ -35,12 +35,17 @@ object DateFormat {
                 then.get(Calendar.DAY_OF_YEAR) == ref.get(Calendar.DAY_OF_YEAR)
         }
 
-        return when {
-            sameDay(0) -> timeFmt.format(Date(timestampMillis))
-            sameDay(1) -> "Yesterday"
-            (now - timestampMillis) < 7L * 24 * 60 * 60 * 1000 -> weekdayFmt.format(Date(timestampMillis))
-            then.get(Calendar.YEAR) == today.get(Calendar.YEAR) -> dateFmt.format(Date(timestampMillis))
-            else -> dateYearFmt.format(Date(timestampMillis))
+        // SimpleDateFormat is not thread-safe and this runs on multiple
+        // dispatchers (recents grouping + detail sheet), so guard formatting.
+        val date = Date(timestampMillis)
+        return synchronized(this) {
+            when {
+                sameDay(0) -> timeFmt.format(date)
+                sameDay(1) -> "Yesterday"
+                (now - timestampMillis) < 7L * 24 * 60 * 60 * 1000 -> weekdayFmt.format(date)
+                then.get(Calendar.YEAR) == today.get(Calendar.YEAR) -> dateFmt.format(date)
+                else -> dateYearFmt.format(date)
+            }
         }
     }
 
