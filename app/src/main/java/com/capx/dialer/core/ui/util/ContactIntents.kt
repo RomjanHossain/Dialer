@@ -31,6 +31,13 @@ object ContactIntents {
         }
     }
 
+    /** Opens the default SMS app composing a message to [number]. */
+    fun message(context: Context, number: String) {
+        val intent = Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${Uri.encode(number)}"))
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        runCatching { context.startActivity(intent) }
+    }
+
     /** Opens the system "create new contact" form pre-filled with [number]. */
     fun create(context: Context, number: String) {
         val intent = Intent(ContactsContract.Intents.Insert.ACTION).apply {

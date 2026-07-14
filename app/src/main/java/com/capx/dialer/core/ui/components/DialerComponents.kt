@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -50,6 +51,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.capx.dialer.core.ui.animation.AnimationEngine
 import com.capx.dialer.core.ui.animation.pressAnimation
 import com.capx.dialer.core.ui.animation.pulseTransition
@@ -203,7 +205,9 @@ fun DialerIconButton(
 data class DialerTab(
     val icon: ImageVector,
     val selectedIcon: ImageVector,
-    val label: String
+    val label: String,
+    /** Optional badge count shown on the tab (0 = no badge). */
+    val badgeCount: Int = 0
 )
 
 /**
@@ -291,6 +295,28 @@ fun DialerBottomBar(
                             modifier = Modifier.size(DesignTokens.iconSize),
                             colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(tint)
                         )
+
+                        if (tab.badgeCount > 0) {
+                            Box(
+                                contentAlignment = Alignment.Center,
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 10.dp, y = (-6).dp)
+                                    .defaultMinSize(minWidth = 18.dp, minHeight = 18.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.callRed)
+                                    .padding(horizontal = 5.dp)
+                            ) {
+                                androidx.compose.material3.Text(
+                                    text = if (tab.badgeCount > 99) "99+" else tab.badgeCount.toString(),
+                                    style = DialerTheme.typography.caption.copy(
+                                        color = Color.White,
+                                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                                        fontSize = 10.sp
+                                    )
+                                )
+                            }
+                        }
                     }
 
                     Spacer(Modifier.height(3.dp))

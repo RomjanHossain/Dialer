@@ -618,6 +618,36 @@ object DialerIcons {
         }.build()
     }
 
+    // ── Message ─────────────────────────────────────────────────────────────
+
+    val Message: ImageVector by lazy {
+        ImageVector.Builder(
+            name = "Message",
+            defaultWidth = defaultSize,
+            defaultHeight = defaultSize,
+            viewportWidth = viewportSize,
+            viewportHeight = viewportSize
+        ).apply {
+            path(
+                stroke = strokeColor,
+                strokeLineWidth = defaultStrokeWidth,
+                strokeLineCap = StrokeCap.Round,
+                strokeLineJoin = StrokeJoin.Round
+            ) {
+                // Rounded speech bubble with a tail
+                moveTo(21f, 15f)
+                curveTo(21f, 16.1f, 20.1f, 17f, 19f, 17f)
+                lineTo(8f, 17f)
+                lineTo(4f, 21f)
+                lineTo(4f, 6f)
+                curveTo(4f, 4.9f, 4.9f, 4f, 6f, 4f)
+                lineTo(19f, 4f)
+                curveTo(20.1f, 4f, 21f, 4.9f, 21f, 6f)
+                close()
+            }
+        }.build()
+    }
+
     // ── Voicemail ───────────────────────────────────────────────────────────
 
     val Voicemail: ImageVector by lazy {

@@ -3,6 +3,9 @@ package com.capx.dialer.core.telecom
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.telecom.Call
 import android.telecom.CallAudioState
 import android.telecom.InCallService
@@ -52,6 +55,11 @@ class CallManager(
     private var contactName: String? = null
     private var contactPhoto: String? = null
 
+    // Tracks the dialing→active transition so we vibrate once when an
+    // outgoing call is answered.
+    private var wasDialing = false
+    private var hasSignalledConnect = false
+
     private val callCallback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) = updateCallState(call)
         override fun onDetailsChanged(call: Call, details: Call.Details) = updateCallState(call)
@@ -84,6 +92,8 @@ class CallManager(
         activeCall = call
         contactName = null
         contactPhoto = null
+        wasDialing = false
+        hasSignalledConnect = false
         call.registerCallback(callCallback)
         updateCallState(call)
         resolveContact(call)
@@ -116,6 +126,16 @@ class CallManager(
     private fun updateCallState(call: Call) {
         val number = call.details?.handle?.schemeSpecificPart ?: "Unknown"
         val name = contactName
+
+        // Vibrate once when our outgoing call is answered (Dialing -> Active).
+        if (call.state == Call.STATE_DIALING || call.state == Call.STATE_CONNECTING) {
+            wasDialing = true
+        }
+        if (call.state == Call.STATE_ACTIVE && wasDialing && !hasSignalledConnect) {
+            hasSignalledConnect = true
+            vibrateConnect()
+        }
+
         val state = when (call.state) {
             Call.STATE_CONNECTING, Call.STATE_DIALING -> CallState.Dialing(number, name)
             Call.STATE_RINGING -> CallState.Ringing(number, name)
@@ -195,6 +215,23 @@ class CallManager(
         runCatching { context.startService(intent) }
         isRecording = false
         refreshActive()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun vibrateConnect() {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vm = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager
+            vm?.defaultVibrator
+        } else {
+            context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
+        } ?: return
+        runCatching {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(VibrationEffect.createOneShot(60, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                vibrator.vibrate(60)
+            }
+        }
     }
 
     fun toggleHold() {

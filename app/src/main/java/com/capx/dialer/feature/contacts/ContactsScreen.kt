@@ -40,10 +40,12 @@ import com.capx.dialer.core.ui.theme.DialerTheme
 @Composable
 fun ContactsScreen(
     viewModel: ContactsViewModel = hiltViewModel(),
-    onCall: (String) -> Unit
+    onCall: (String) -> Unit,
+    onOpenCallLog: (String) -> Unit
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val colors = DialerTheme.colors
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.events.collect { event ->
@@ -77,7 +79,14 @@ fun ContactsScreen(
             if (state.favorites.isNotEmpty() && state.searchQuery.isBlank()) {
                 item { SectionLabel("FAVORITES") }
                 items(state.favorites, key = { "fav-${it.id}" }) { contact ->
-                    ContactRow(contact = contact, onClick = { viewModel.onCallClick(contact.phoneNumber) })
+                    ContactRow(
+                        contact = contact,
+                        onOpenCallLog = { onOpenCallLog(contact.phoneNumber) },
+                        onCall = { viewModel.onCallClick(contact.phoneNumber) },
+                        onOpenContact = {
+                            com.capx.dialer.core.ui.util.ContactIntents.viewOrCreate(context, contact.phoneNumber)
+                        }
+                    )
                     DialerDivider(startIndent = 80.dp)
                 }
             }
@@ -95,7 +104,14 @@ fun ContactsScreen(
                 }
             } else {
                 items(state.contacts, key = { it.id }) { contact ->
-                    ContactRow(contact = contact, onClick = { viewModel.onCallClick(contact.phoneNumber) })
+                    ContactRow(
+                        contact = contact,
+                        onOpenCallLog = { onOpenCallLog(contact.phoneNumber) },
+                        onCall = { viewModel.onCallClick(contact.phoneNumber) },
+                        onOpenContact = {
+                            com.capx.dialer.core.ui.util.ContactIntents.viewOrCreate(context, contact.phoneNumber)
+                        }
+                    )
                     DialerDivider(startIndent = 80.dp)
                 }
             }
@@ -104,16 +120,26 @@ fun ContactsScreen(
 }
 
 @Composable
-private fun ContactRow(contact: Contact, onClick: () -> Unit) {
+private fun ContactRow(
+    contact: Contact,
+    onOpenCallLog: () -> Unit,
+    onCall: () -> Unit,
+    onOpenContact: () -> Unit
+) {
     val colors = DialerTheme.colors
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onOpenCallLog)
             .padding(horizontal = 20.dp, vertical = 10.dp)
     ) {
-        DialerAvatar(name = contact.name, number = contact.phoneNumber, size = 48.dp)
+        DialerAvatar(
+            name = contact.name,
+            number = contact.phoneNumber,
+            size = 48.dp,
+            modifier = Modifier.clip(CircleShape).clickable(onClick = onOpenContact)
+        )
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
             androidx.compose.material3.Text(
@@ -147,7 +173,7 @@ private fun ContactRow(contact: Contact, onClick: () -> Unit) {
                 .size(40.dp)
                 .clip(CircleShape)
                 .background(colors.callGreen.copy(alpha = 0.14f))
-                .clickable(onClick = onClick)
+                .clickable(onClick = onCall)
         ) {
             androidx.compose.foundation.Image(
                 imageVector = DialerIcons.Phone,

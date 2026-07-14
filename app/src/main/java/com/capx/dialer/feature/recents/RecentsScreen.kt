@@ -73,24 +73,80 @@ fun RecentsScreen(
             else -> {
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     items(state.groups, key = { it.id }) { group ->
-                        RecentRow(
-                            name = group.name?.takeIf { it.isNotBlank() },
-                            number = group.number,
-                            type = group.type,
-                            count = group.count,
-                            subtitle = group.subtitle,
+                        SwipeableRecentRow(
                             onCall = { viewModel.onCallClick(group.number) },
-                            onOpenDetail = { onOpenCallLog(group.number) },
-                            onOpenContact = {
-                                com.capx.dialer.core.ui.util.ContactIntents.viewOrCreate(context, group.number)
+                            onMessage = {
+                                com.capx.dialer.core.ui.util.ContactIntents.message(context, group.number)
                             }
-                        )
+                        ) {
+                            RecentRow(
+                                name = group.name?.takeIf { it.isNotBlank() },
+                                number = group.number,
+                                type = group.type,
+                                count = group.count,
+                                subtitle = group.subtitle,
+                                onCall = { viewModel.onCallClick(group.number) },
+                                onOpenDetail = { onOpenCallLog(group.number) },
+                                onOpenContact = {
+                                    com.capx.dialer.core.ui.util.ContactIntents.viewOrCreate(context, group.number)
+                                }
+                            )
+                        }
                         DialerDivider(startIndent = 80.dp)
                     }
                 }
             }
         }
     }
+}
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+@Composable
+private fun SwipeableRecentRow(
+    onCall: () -> Unit,
+    onMessage: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val colors = DialerTheme.colors
+    val dismissState = androidx.compose.material3.rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            when (value) {
+                androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd -> onCall()
+                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> onMessage()
+                androidx.compose.material3.SwipeToDismissBoxValue.Settled -> Unit
+            }
+            // Never actually dismiss — just trigger the action and snap back.
+            false
+        }
+    )
+
+    androidx.compose.material3.SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val isCall = direction == androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd
+            val bg = if (isCall) colors.callGreen else colors.secondary
+            val icon = if (isCall) DialerIcons.Phone else DialerIcons.Message
+            val alignment = if (isCall) Alignment.CenterStart else Alignment.CenterEnd
+            Box(
+                contentAlignment = alignment,
+                modifier = Modifier
+                    .fillMaxSize()
+//                    .background(bg)
+                    .padding(horizontal = 28.dp)
+            ) {
+                if (direction != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
+                    androidx.compose.foundation.Image(
+                        imageVector = icon,
+                        contentDescription = if (isCall) "Call" else "Message",
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(Color.White)
+                    )
+                }
+            }
+        },
+        content = { content() }
+    )
 }
 
 @Composable

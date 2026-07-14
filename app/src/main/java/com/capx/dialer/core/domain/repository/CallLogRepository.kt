@@ -33,6 +33,18 @@ interface CallLogRepository {
     fun getRecentCallsByNumber(number: String): Flow<List<RecentCall>>
 
     /**
+     * Observes the number of unread missed calls (for the recents tab badge).
+     * Re-emits whenever the call log changes.
+     */
+    fun getMissedCount(): Flow<Int>
+
+    /**
+     * Marks all missed calls as read, clearing the badge. No-op if the write
+     * permission is missing.
+     */
+    suspend fun markMissedCallsAsRead()
+
+    /**
      * Deletes a single call log entry by its [id].
      *
      * @param id The unique identifier of the call log entry to delete.

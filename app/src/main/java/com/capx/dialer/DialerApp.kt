@@ -131,7 +131,7 @@ private fun MainShell(mainViewModel: MainViewModel) {
 
     val tabs = listOf(
         DialerTab(DialerIcons.Keypad, DialerIcons.Keypad, "Dialpad"),
-        DialerTab(DialerIcons.Clock, DialerIcons.ClockFilled, "Recents"),
+        DialerTab(DialerIcons.Clock, DialerIcons.ClockFilled, "Recents", badgeCount = callState.missedCount),
         DialerTab(DialerIcons.Contacts, DialerIcons.ContactsFilled, "Contacts"),
         DialerTab(DialerIcons.Mic, DialerIcons.MicFilled, "Recordings")
     )
@@ -145,6 +145,7 @@ private fun MainShell(mainViewModel: MainViewModel) {
                     selectedIndex = selectedIndex,
                     onTabSelected = { index ->
                         selectedIndex = index
+                        if (index == 1) mainViewModel.onRecentsOpened()
                         val route = when (index) {
                             0 -> "dialpad"
                             1 -> "recents"
@@ -176,7 +177,10 @@ private fun MainShell(mainViewModel: MainViewModel) {
                         )
                     }
                     composable("contacts") {
-                        ContactsScreen(onCall = mainViewModel::requestCall)
+                        ContactsScreen(
+                            onCall = mainViewModel::requestCall,
+                            onOpenCallLog = mainViewModel::openCallLog
+                        )
                     }
                     composable("recordings") {
                         RecordingsScreen()

@@ -6,13 +6,17 @@ import com.capx.dialer.core.domain.model.Contact
 import com.capx.dialer.core.domain.usecase.GetContactsUseCase
 import com.capx.dialer.core.domain.util.T9
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 /**
@@ -33,6 +37,7 @@ class DialpadViewModel @Inject constructor(
 
     /** In-memory contact cache used for fast T9 filtering on every keypress. */
     private var allContacts: List<Contact> = emptyList()
+    private var suggestionJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -76,15 +81,21 @@ class DialpadViewModel @Inject constructor(
 
     private fun recomputeSuggestions() {
         val query = _state.value.currentNumber
+        suggestionJob?.cancel()
         if (query.isBlank()) {
             _state.update { it.copy(suggestedContacts = emptyList()) }
             return
         }
-        val matches = allContacts
-            .asSequence()
-            .filter { T9.matches(it, query) }
-            .take(20)
-            .toList()
-        _state.update { it.copy(suggestedContacts = matches) }
+        // Debounce fast typing and run T9 matching off the main thread.
+        suggestionJob = viewModelScope.launch {
+            delay(60)
+            val matches = withContext(Dispatchers.Default) {
+                allContacts.asSequence()
+                    .filter { T9.matches(it, query) }
+                    .take(20)
+                    .toList()
+            }
+            _state.update { it.copy(suggestedContacts = matches) }
+        }
     }
 }

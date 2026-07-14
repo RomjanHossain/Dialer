@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.capx.dialer.core.domain.model.SimAccount
 import com.capx.dialer.core.domain.usecase.DialNumberUseCase
+import com.capx.dialer.core.domain.usecase.GetMissedCallCountUseCase
 import com.capx.dialer.core.domain.usecase.GetRecentCallsByNumberUseCase
 import com.capx.dialer.core.domain.usecase.GetSimAccountsUseCase
+import com.capx.dialer.core.domain.usecase.MarkMissedCallsReadUseCase
 import com.capx.dialer.feature.calllog.CallLogDetailUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -26,7 +28,9 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     private val getSimAccountsUseCase: GetSimAccountsUseCase,
     private val dialNumberUseCase: DialNumberUseCase,
-    private val getRecentCallsByNumberUseCase: GetRecentCallsByNumberUseCase
+    private val getRecentCallsByNumberUseCase: GetRecentCallsByNumberUseCase,
+    private val getMissedCallCountUseCase: GetMissedCallCountUseCase,
+    private val markMissedCallsReadUseCase: MarkMissedCallsReadUseCase
 ) : ViewModel() {
 
     data class UiState(
@@ -34,13 +38,28 @@ class MainViewModel @Inject constructor(
         /** Number awaiting a SIM choice; non-null shows the SIM picker sheet. */
         val pendingCallNumber: String? = null,
         /** Non-null while the call-log detail bottom sheet is open. */
-        val callLog: CallLogDetailUiState? = null
+        val callLog: CallLogDetailUiState? = null,
+        /** Unread missed-call count for the recents tab badge. */
+        val missedCount: Int = 0
     )
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     private var callLogJob: Job? = null
+
+    init {
+        viewModelScope.launch {
+            getMissedCallCountUseCase().collect { count ->
+                _state.update { it.copy(missedCount = count) }
+            }
+        }
+    }
+
+    /** Called when the user opens the Recents tab — clears the missed badge. */
+    fun onRecentsOpened() {
+        viewModelScope.launch { markMissedCallsReadUseCase() }
+    }
 
     /** Load SIM accounts up-front so the picker can appear instantly. */
     fun refreshSims() {

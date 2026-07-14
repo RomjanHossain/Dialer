@@ -67,6 +67,51 @@ class CallLogRepositoryImpl @Inject constructor(
         emit(query("${CallLog.Calls.NUMBER} = ?", arrayOf(number)))
     }.flowOn(Dispatchers.IO)
 
+    override fun getMissedCount(): Flow<Int> = callbackFlow {
+        val producer = this
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                producer.launch { producer.trySend(queryMissedCount()) }
+            }
+        }
+        context.contentResolver.registerContentObserver(
+            CallLog.Calls.CONTENT_URI, true, observer
+        )
+        producer.trySend(queryMissedCount())
+        awaitClose { context.contentResolver.unregisterContentObserver(observer) }
+    }.flowOn(Dispatchers.IO)
+
+    override suspend fun markMissedCallsAsRead() {
+        try {
+            val values = android.content.ContentValues().apply {
+                put(CallLog.Calls.NEW, 0)
+                put(CallLog.Calls.IS_READ, 1)
+            }
+            context.contentResolver.update(
+                CallLog.Calls.CONTENT_URI,
+                values,
+                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.IS_READ} = 0",
+                arrayOf(CallLog.Calls.MISSED_TYPE.toString())
+            )
+        } catch (e: SecurityException) {
+            // Missing WRITE_CALL_LOG — ignore.
+        }
+    }
+
+    private fun queryMissedCount(): Int {
+        return try {
+            context.contentResolver.query(
+                CallLog.Calls.CONTENT_URI,
+                arrayOf(CallLog.Calls._ID),
+                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.IS_READ} = 0",
+                arrayOf(CallLog.Calls.MISSED_TYPE.toString()),
+                null
+            )?.use { it.count } ?: 0
+        } catch (e: SecurityException) {
+            0
+        }
+    }
+
     override suspend fun deleteRecentCall(id: Long) {
         try {
             context.contentResolver.delete(
