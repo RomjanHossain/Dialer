@@ -111,28 +111,38 @@ private fun SwipeableRecentRow(
     val dismissState = androidx.compose.material3.rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
             when (value) {
-                androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd -> onCall()
-                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> onMessage()
+                // Swipe LEFT (end -> start) calls; swipe RIGHT (start -> end) messages.
+                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> onCall()
+                androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd -> onMessage()
                 androidx.compose.material3.SwipeToDismissBoxValue.Settled -> Unit
             }
             // Never actually dismiss — just trigger the action and snap back.
             false
-        }
+        },
+        // Require dragging at least halfway across the row so ordinary
+        // (vertical) scrolling never accidentally triggers an action.
+        positionalThreshold = { totalDistance -> totalDistance * 0.5f }
     )
 
     androidx.compose.material3.SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
             val direction = dismissState.dismissDirection
-            val isCall = direction == androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd
-            val bg = if (isCall) colors.callGreen else colors.secondary
+            val isCall = direction == androidx.compose.material3.SwipeToDismissBoxValue.EndToStart
+            // Colour the revealed background by action: green for call, accent for message.
+            val bg = when (direction) {
+                androidx.compose.material3.SwipeToDismissBoxValue.EndToStart -> colors.callGreen
+                androidx.compose.material3.SwipeToDismissBoxValue.StartToEnd -> colors.secondary
+                androidx.compose.material3.SwipeToDismissBoxValue.Settled -> Color.Transparent
+            }
             val icon = if (isCall) DialerIcons.Phone else DialerIcons.Message
-            val alignment = if (isCall) Alignment.CenterStart else Alignment.CenterEnd
+            // Call reveals from the right (end); message reveals from the left (start).
+            val alignment = if (isCall) Alignment.CenterEnd else Alignment.CenterStart
             Box(
                 contentAlignment = alignment,
                 modifier = Modifier
                     .fillMaxSize()
-//                    .background(bg)
+                    .background(bg)
                     .padding(horizontal = 28.dp)
             ) {
                 if (direction != androidx.compose.material3.SwipeToDismissBoxValue.Settled) {
